@@ -1,33 +1,19 @@
-i128 exgcd(i128 a, i128 b, i128 &x, i128 &y){
-    if (b == 0) return x=1, y=0, a;
-    int d = exgcd(b, a % b, y, x);
-    y -= a / b * x;
-    return d;
-}
-// as -> 算式答案
-// ns -> 模數 MOD
-i128 CRT(vector<i64> as, vector<i64> ns) {
-    i32 n = as.size();
-    i128 a1, a2, n1, n2;
-    bool flag = false;
-    auto china = [&]() {
-        i128 d = a2 - a1;
-        i128 x, y;
-        i128 g = exgcd(n1, n2, x, y);
-        if (d % g == 0) {
-            x = ((x * d / g) % (n2 / g) + (n2 / g)) % (n2 / g);
-            a1 = x * n1 + a1;
-            n1 = (n1 * n2) / g;
-        } else {
-            flag = true;
+// O(NlogC)
+// E = {(m, r), ...}: x mod m_i = r_i
+// return {M, R} x mod M = R
+// return {-1, -1} if no solution
+pair<i64, i64> CRT(vector<pair<i64, i64>> E) {
+    i128 R = 0, M = 1;
+    for (auto [m, r] : E) {
+        i64 g, x, y, d;
+        g = exgcd(M, m, x, y);
+        d = r - R;
+        if (d % g != 0) {
+            return {-1, -1};
         }
-    };
-
-    a1 = as[0], n1 = ns[0];
-    for (i32 i = 1; i < n; i++) {
-        a2 = as[i], n2 = ns[i];
-        china();
-        if (flag) return -1;
+        R += d / g * M * x;
+        M = M * m / g;
+        R = (R % M + M) % M;
     }
-    return a1;
+    return {M, R};
 }
