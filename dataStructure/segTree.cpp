@@ -1,79 +1,54 @@
-
-struct segTree {
-#define cl(x) (x << 1)
-#define cr(x) ((x << 1) | 1)
-    int n;
-    vector<int> seg;
-    vector<int> arr, tag;
-    segTree(int _n): n(_n) {
-        seg = vector<int>(4 * (n + 5), 0);
-        tag = vector<int>(4 * (n + 5), 0);
-        arr = vector<int>(n + 5, 0);
-    }
-    void push(int id, int l, int r) {
-        if (tag[id] != 0) {
-            seg[id] += tag[id] * (r - l + 1);
-            if (l != r) {
-                tag[cl(id)] += tag[id];
-                tag[cr(id)] += tag[id];
-            }
-            tag[id] = 0;
-        }
-    }
-    void pull(int id, int l, int r) {
-        int mid = (l + r) >> 1;
-        push(cl(id), l, mid);
-        push(cr(id), mid + 1, r);
-        int a = seg[cl(id)];
-        int b = seg[cr(id)];
-        seg[id] = a + b;
-    }
-    void build(int id, int l, int r) {
-        if (l == r) {
-            seg[id] = arr[l];
+template<class S>
+struct Seg {
+    Seg<S> *ls{}, *rs{};
+    int l, r;
+    S d{};
+    Seg(int _l, int _r) : l{_l}, r{_r} {
+        if (r - l == 1) {
             return;
         }
-        int mid = (l + r) >> 1;
-        build(cl(id), l, mid);
-        build(cr(id), mid + 1, r);
-        pull(id, l, r);
+        int mid = (l + r) / 2;
+        ls = new Seg(l, mid);
+        rs = new Seg(mid, r);
+        pull();
     }
-    void update(int id, int l, int r, int ql, int qr, int v) {
-        push(id, l, r);
-        if (ql <= l && r <= qr) {
-            tag[id] += v;
+    void pull() { d = ls->d + rs->d; }
+    S query(int x, int y) {
+        if (y <= l or r <= x)
+            return S{};
+        if (x <= l and r <= y)
+            return d;
+        return ls->query(x, y) + rs->query(x, y);
+    }
+    void set(int p, const S &e) {
+        if (p + 1 <= l or r <= p)
+            return;
+        if (r - l == 1) {
+            d = e;
             return;
         }
-        int mid = (l + r) >> 1;
-        if (ql <= mid)
-            update(cl(id), l, mid, ql, qr, v);
-        if (qr > mid)
-            update(cr(id), mid + 1, r, ql, qr, v);
-        pull(id, l, r);
+        ls->set(p, e);
+        rs->set(p, e);
+        pull();
     }
-    int query(int id, int l, int r, int ql, int qr) {
-        push(id, l, r);
-        if (ql <= l && r <= qr) {
-            return seg[id];
-        }
-        int mid = (l + r) >> 1;
-        int ans1, ans2;
-        bool f1 = 0, f2 = 0;
-        if (ql <= mid) {
-            ans1 = query(cl(id), l, mid, ql, qr);
-            f1 = 1;
-        }
-        if (qr > mid) {
-            ans2 = query(cr(id), mid + 1, r, ql, qr);
-            f2 = 1;
-        }
-        if (f1 && f2)
-            return ans1 + ans2;
-        if (f1)
-            return ans1;
-        return ans2;
+    pair<int, S> findFirst(int x, int y, auto &&pred, S cur = {}) {
+        if (y <= l or r <= x)
+            return {-1, {}};
+        if (x <= l and r <= y and !pred(cur + d))
+            return {-1, cur + d};
+        if (r - l == 1) 
+            return {l, cur + d};
+        auto res = ls->findFirst(x, y, pred, cur);
+        return res.ft == -1 ? rs->findFirst(x, y, pred, res.sd) : res;
     }
-    void build() { build(1, 1, n); }
-    int query(int ql, int qr) { return query(1, 1, n, ql, qr); }
-    void update(int ql, int qr, int val) { update(1, 1, n, ql, qr, val); }
+    pair<int, S> findLast(int x, int y, auto &&pred, S cur = {}) {
+        if (y <= l or r <= x)
+            return {-1, {}};
+        if (x <= l and r <= y and !pred(d + cur))
+            return {-1, d + cur};
+        if (r - l == 1)
+            return {l, d + cur};
+        auto res = rs->findLast(x, y, pred, cur);
+        return res.ft == -1 ? ls->findLast(x, y, pred, res.sd) : res;
+    }
 };
